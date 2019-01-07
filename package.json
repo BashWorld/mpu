@@ -1,4 +1,14 @@
 {
   "name": "@ashhash/mpu",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "description": "Utility to pass messages to other processes within a cluster",
+  "license": "MIT",
+  "repository": "BashWorld/mpu",
+  "main": "index.js",
+  "keywords": [
+    "node",
+    "cluster",
+    "message",
+    "passing"
+  ]
 }
