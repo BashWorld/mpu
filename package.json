@@ -10,5 +10,8 @@
     "cluster",
     "message",
     "passing"
-  ]
+  ],
+  "dependencies": {
+    "cluster": "^0.7.7"
+  }
 }
