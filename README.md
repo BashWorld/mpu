@@ -53,4 +53,10 @@ around in the cluster.
 The above example shows how a single worker can ask all worker processes (including itself)
 to execute a function. Even though every worker process is trying to ask all worker processes
 to execute the `fun` function, `mp-unit` module makes sure that only a single call goes to all processes. 
-Thus, working as though only a single process called the `sendW2WS` (Worker-To-Workers) function. 
+Thus, working as though only a single process called the `sendW2WS` (Worker-To-Workers) function.
+
+### Updates
+Added sendW2M (Worker-to-Master) function
+(future update will add a flag to make sure that only a single call is executed,
+if called from all the workers
+)

@@ -8,22 +8,19 @@ let printMessage = function(callFn, message){
   callFn("Worker "+cluster.worker.id+"("+process.pid+") := "+message);
 };
 
-/**
- * @param {string} message
- */
-exports.w2ws = function(message){
+let mphelper = function(message,checkFlag,keyMakerFn){
     let defer = Q.defer();
     try {
-        if (cluster.isWorker) {
-            if (!tracker.getTrackerStatus(message)) {
-                let msg = msgHelper.composeW2WSMsg(message);
-                tracker.startTracking(message);
+        if (checkFlag) {
+            let msg = keyMakerFn(message);
+            if (!tracker.getTrackerStatus(msg)) {
+                tracker.startTracking(msg);
                 process.send(msg);
                 let handlerFunction, timeoutFunction;
                 handlerFunction = function () {
                     try {
-                        if (tracker.getTrackerStatus(message) === constants.STATUS.COMPLETE) {
-                            tracker.removeTracker(message);
+                        if (tracker.getTrackerStatus(msg) === constants.STATUS.COMPLETE) {
+                            tracker.removeTracker(msg);
                             defer.resolve()
                         } else {
                             if (constants.showProgressMessage()) {
@@ -56,4 +53,15 @@ exports.w2ws = function(message){
         defer.reject(err);
     }
     return defer.promise;
+};
+
+/**
+ * @param {string} message
+ */
+exports.w2ws = function(message){
+    return mphelper(message,cluster.isWorker,msgHelper.composeW2WSMsg);
+};
+
+exports.w2m = function(message){
+    return mphelper(message,cluster.isWorker,msgHelper.composeW2MMsg);
 };

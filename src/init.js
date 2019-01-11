@@ -77,7 +77,7 @@ exports.init = function (params) {
                let status = msgHelper.getStatus(message);
                if(status){
                    // it's done
-                    require('./jobTracker').stopTracking(msgHelper.getMessage(message));
+                    require('./jobTracker').stopTracking(msgHelper.getTillMessage(message));
                }
                else{
                    callFunc(message)
@@ -85,6 +85,9 @@ exports.init = function (params) {
                            process.send(msgHelper.addToMessage(message,messageConstants.STATUS.COMPLETE));
                        });
                }
+           }
+           else if(msgHelper.isW2M(message)){
+               require('./jobTracker').stopTracking(msgHelper.getTillMessage(message));
            }
         });
     }

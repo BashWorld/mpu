@@ -19,6 +19,9 @@ exports.shatterMessage = function(msg,sep){
     return msg.split(sep || SEPARATOR);
 };
 
+exports.getTillMessage = function(msg){
+    return this.shatterMessage(this.shatterMessage(msg).slice(0,2).join(SEPARATOR),WORKER_ID_SEPARATOR)[0];
+};
 exports.getMessage = function(msg){
     return this.shatterMessage(this.shatterMessage(msg)[1],WORKER_ID_SEPARATOR)[0];
 };
