@@ -1,6 +1,6 @@
 {
   "name": "mp-unit",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "Utility to pass messages to other processes within a cluster",
   "license": "MIT",
   "repository": "BashWorld/mpu",
