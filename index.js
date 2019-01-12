@@ -1,6 +1,7 @@
 exports.init = require('./src/init').init;
 exports.sendW2WS = require('./src/main').w2ws;
 exports.sendW2M = require('./src/main').w2m;
+exports.sendM2W = require('./src/main').m2w;
 exports.addToMap = require('./src/constants').addToMap;
 exports.removeFromMap = require('./src/constants').removeFromMap;
 let constants = require('./src/constants');

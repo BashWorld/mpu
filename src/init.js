@@ -68,6 +68,9 @@ exports.init = function (params) {
                         }
                     }
                 }
+                else if(msgHelper.isM2W(message)){
+                    require('./jobTracker').stopTracking(msgHelper.getTillMessage(message));
+                }
             });
         }
     }
@@ -88,6 +91,15 @@ exports.init = function (params) {
            }
            else if(msgHelper.isW2M(message)){
                require('./jobTracker').stopTracking(msgHelper.getTillMessage(message));
+           }
+           else if(msgHelper.isM2W(message)){
+               callFunc(message)
+                   .then(function(status){
+                       process.send(msgHelper.addToMessage(message,messageConstants.STATUS.COMPLETE));
+                   })
+                   .catch(function(err){
+                       console.log(err);
+                   });
            }
         });
     }
