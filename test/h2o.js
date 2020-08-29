@@ -1,70 +1,87 @@
 const cluster = require('cluster');
-const { async } = require('q');
-const children = 3;
+const mpu = require("../index");
 
-const workerEnv = {
-    3: function(){
-        return {
-            env : {
-                hCount: 0,
-                oCount: 0,
-                h2oCount: 0,
-            },
-            functions : {
-                increamentHCounter :  function() { return ++this.env.hCount},
-                increamentOCounter :  function() { return ++this.env.oCount},
-                waterCreated : function() {
-                    if(this.env.hCount == 2 && this.env.oCount == 1) {
-                        return "RESOLVE";
-                    }
-                    return "WAIT";
-                } 
-            }
-        };
+class WaterScrew {
+    constructor(){
+        this.initResolvers();
     }
+    initResolvers(){
+        this.O1R = new Promise((resolve,_)=>{
+            this.O1R = () => resolve();
+        });
+        this.O2P = new Promise((resolve,_)=>{
+            this.O2R = () => resolve();
+        });
+        this.HP = new Promise((resolve,_)=>{
+            this.HR = () => resolve();
+        });
+        this.H20P = new Promise((resolve,_)=>{
+            this.H2OR = () => resolve();
+        });
+    }
+    waitForWater(){
+        return new Promise((resolve,_)=>{
+            Promise.all([this.O1P,this.O2P,this.HR])
+            .then(()=>{
+                console.log("----We have water!----");
+                setTimeout(()=>{
+                    this.H2OR();
+                    this.initResolvers();
+                    resolve();
+                },1000);
+            });
+        });
+    }
+    oxygenRecieved(index){
+        (index===1?this.O1R:this.O2R)();
+        return this.H2OP;
+    }
+    hydrogenRecieved(){
+        this.HR();
+        return this.H2OP;
+    }
+    get hydrogen() {
+        return this.HP;
+    }
+    get oxygen(index){
+        return index===1?this.O1P:this.O2P;
+    }
+}
+var heronsFountain = null;
+
+const MESSAGE_KEYS = {
+    O1C : "oxygen1Created",
+    O2C : "oxgen2Createad",
+    HC  : "hydrogenCreated"
 };
 
-const clusterEnv = {
-    localCount : 0,
-    type : "",
-    0 : function createHydrogen(){
-        function rec(){
-            type = "H-atom";
-            console.log(`PID ${process.pid} created H-atom [#{this.localCount++}]`);
-            workerEnv.functions.increamentHCounter()
-            .then(workerEnv.functions.waterCreated).then(rec);
-        }
-        rec();
-    },
-    1 : this[0],
-    2 : function createOxygen(){
-        type = "O-atom";
-        console.log(`PID ${process.pid} created O-atom [#{this.localCount++}]`);
-        callAgain = this[2];
-        workerEnv.functions.increamentHCounter()
-        .then(workerEnv.functions.waterCreated).then(callAgain);
-    },
-    3 : function createWater(){
-        type = "H2O-molecule";
-        console.log(`PID ${process.pid} created H2O-molecule [#{count++}]`);
-        callAgain = this[3];
-        workerEnv.functions.increamentHCounter()
-        .then(workerEnv.functions.waterCreated).then(callAgain);
-    }
+const MESSAGE_MAP = {
+    [MESSAGE_KEYS.O1C] : heronsFountain.oxygenRecieved(1),
+    [MESSAGE_KEYS.O2C] : heronsFountain.oxygenRecieved(2),
+    [MESSAGE_KEYS.HR] : heronsFountain.hydrogenRecieved()
 };
 
-if(cluster.isMaster){
-
-}else{
-    let functionToExecute = functionMap[cluster.worker.id];
-    (async function(){
-        while(true){
-
-        }
-    })();
+function perpetualCreation(atom,msg_key){
+    function r(){
+        console.log(`${atom}-created!`);
+        return mpu.sendW2W(msg_key,3);
+    }
+    return r();
 }
 
-process.on("SIGINT", function(){
-    console.log(`Exiting. Total ${type} create := ${count}`);
-    process.exit();
-});
+if(cluster.isMaster){
+    for(i=0;i<=3;i++) cluster.fork();
+    mpu.init({MESSAGE_MAP});
+}
+else{
+    switch(cluster.worker.id){
+        case 0: ; perpetualCreation("Oxygen",MESSAGE_KEYS.O1C); break;
+        case 1: ; perpetualCreation("Oxygen",MESSAGE_KEYS.O2C); break;
+        case 2: ; perpetualCreation("Hydrogen",MESSAGE_KEYS.HC); break;
+        case 3: 
+            heronsFountain = new WaterScrew(); 
+            heronsFountain.waitForWater();
+            break;
+        default: console.log("Unexpected child! :p")
+    }
+}
