@@ -1,25 +1,29 @@
 const cluster = require('cluster');
 const mpu = require("../index");
 
-class WaterScrew {
-    constructor(){
-        this.initResolvers();
+function recurse(f){
+    var pr = Promise.resolve();
+    while(true){
+        pr=pr.then(f);
     }
-    initResolvers(){
+}
+
+let WaterScrew = {
+    initResolvers : function(){
         this.O1R = new Promise((resolve,_)=>{
-            this.O1R = () => resolve();
+            this.O1R = resolve;
         });
         this.O2P = new Promise((resolve,_)=>{
-            this.O2R = () => resolve();
+            this.O2R = resolve;
         });
         this.HP = new Promise((resolve,_)=>{
-            this.HR = () => resolve();
+            this.HR = resolve;
         });
         this.H20P = new Promise((resolve,_)=>{
-            this.H2OR = () => resolve();
+            this.H2OR = resolve;
         });
-    }
-    waitForWater(){
+    },
+    waitForWater:function(){
         return new Promise((resolve,_)=>{
             Promise.all([this.O1P,this.O2P,this.HR])
             .then(()=>{
@@ -31,24 +35,22 @@ class WaterScrew {
                 },1000);
             });
         });
-    }
-    oxygenRecieved(index){
-        (index===1?this.O1R:this.O2R)();
-        return this.H2OP;
-    }
-    hydrogenRecieved(){
+    },
+    oxygenRecieved:function(index){
+        let f=(index===1?this.O1R:this.O2R);
+        return ()=>{
+            console.log("OK! O",index);
+            f();
+            this.H2OP;
+        };
+    },
+    hydrogenRecieved:function(){
+        console.log("OK! H");
         this.HR();
         return this.H2OP;
     }
-    get hydrogen() {
-        return this.HP;
-    }
-    get oxygen(index){
-        return index===1?this.O1P:this.O2P;
-    }
 }
-var heronsFountain = null;
-
+WaterScrew.initResolvers();
 const MESSAGE_KEYS = {
     O1C : "oxygen1Created",
     O2C : "oxgen2Createad",
@@ -56,31 +58,30 @@ const MESSAGE_KEYS = {
 };
 
 const MESSAGE_MAP = {
-    [MESSAGE_KEYS.O1C] : heronsFountain.oxygenRecieved(1),
-    [MESSAGE_KEYS.O2C] : heronsFountain.oxygenRecieved(2),
-    [MESSAGE_KEYS.HR] : heronsFountain.hydrogenRecieved()
+    [MESSAGE_KEYS.O1C] : WaterScrew.oxygenRecieved(1),
+    [MESSAGE_KEYS.O2C] : WaterScrew.oxygenRecieved(2),
+    [MESSAGE_KEYS.HR]  : WaterScrew.hydrogenRecieved()
 };
 
 function perpetualCreation(atom,msg_key){
     function r(){
         console.log(`${atom}-created!`);
-        return mpu.sendW2W(msg_key,3);
+        return mpu.sendToSibling({siblingId:4,message:msg_key});
     }
     return r();
 }
 
 if(cluster.isMaster){
     for(i=0;i<=3;i++) cluster.fork();
-    mpu.init({MESSAGE_MAP});
+    mpu.init({COMMON_MAP:MESSAGE_MAP, FAMILY_SIZE:4});
 }
 else{
     switch(cluster.worker.id){
-        case 0: ; perpetualCreation("Oxygen",MESSAGE_KEYS.O1C); break;
-        case 1: ; perpetualCreation("Oxygen",MESSAGE_KEYS.O2C); break;
-        case 2: ; perpetualCreation("Hydrogen",MESSAGE_KEYS.HC); break;
-        case 3: 
-            heronsFountain = new WaterScrew(); 
-            heronsFountain.waitForWater();
+        case 1: ; perpetualCreation("Oxygen",MESSAGE_KEYS.O1C); break;
+        case 2: ; perpetualCreation("Oxygen",MESSAGE_KEYS.O2C); break;
+        case 3: ; perpetualCreation("Hydrogen",MESSAGE_KEYS.HC); break;
+        case 4: 
+            WaterScrew.waitForWater();
             break;
         default: console.log("Unexpected child! :p")
     }
