@@ -17,21 +17,18 @@ exports.getTrackerStatus = function(key){
 
 exports.startTracking = function (key) {
     return new Promise((resolve,reject)=>{
-        tracker[key] = {resolve,reject};
+        tracker.set(key,{resolve,reject});
     });
 };
 
-exports.stopTracking = function ({msg:key,status}) {
+exports.stopTracking = function ({msg:key,status,result,error}) {
     if(key in tracker){
         if(status === constants.STATUS.COMPLETE){
-            tracker[key].resolve();
+            tracker.get(key).resolve(result);
         }
         else{
-            tracker[key].reject();
+            tracker.get(key).reject(error);
         }
     }
-};
-
-exports.removeTracker = function (key) {
-    return tracker.delete(key);
+    tracker.delete(key)
 };

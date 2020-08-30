@@ -4,7 +4,8 @@ let msgHelper = require('./messageHelper');
 const LOCAL_ENV = require('./localEnv');
 const JOB_TRACKER = require('./jobTracker');
 
-function executeMessage ({msg},recipient=process){
+function executeMessage (message,recipient=process){
+    const {msg} = message;
     //check if msg not there
     function updateMessage(status,obj){
         message.dir = messageConstants.DIRECTION.BACKWARD;
@@ -12,7 +13,7 @@ function executeMessage ({msg},recipient=process){
         Object.assign(message,obj);
         return message;
     }
-    return LOCAL_ENV.execute[msg]()
+    return LOCAL_ENV.execute(msg)
         .then(function(result){
             recipient.send(updateMessage(messageConstants.STATUS.COMPLETE,{result}));
         })
@@ -25,9 +26,6 @@ function addParentListeners(){
     for(let workerId in cluster.workers){
         let worker = cluster.workers[workerId];
         worker.on('message', function (message) {
-            console.log("M");
-            console.log(message);
-            console.log();
             if(msgHelper.isGoingForward(message)){
                 if(msgHelper.isMessageForParent(message)){
                     executeMessage(message,worker);
@@ -59,17 +57,17 @@ function addParentListeners(){
  * @param {object} params.COMMON_MAP 
  * @param {number} params.FAMILY_SIZE - (Excluding parent) Total number of child processes
  */
-exports.init = function ({COMMON_MAP, FAMILY_SIZE}) {
-    LOCAL_ENV.setMessageMap(COMMON_MAP);
+exports.init = function ({MESSAGE_MAP, FAMILY_SIZE, CREATE_FAMILY=false}) {
+    LOCAL_ENV.setMessageMap(MESSAGE_MAP);
     LOCAL_ENV.setSiblings(FAMILY_SIZE);
     /*add listeners to master process*/
     if(cluster.isMaster){
+        if(CREATE_FAMILY){
+            for(let i=0;i<FAMILY_SIZE;i++)cluster.fork();
+        }
         addParentListeners();   
     }
     else if(cluster.isWorker){
-        console.log("W");
-        console.log(message);
-        console.log();
         process.on('message',function (message) {
             if(msgHelper.isGoingForward(message)){
                 if(msgHelper.isMessageForThisChild(cluster.worker.id,message)){
