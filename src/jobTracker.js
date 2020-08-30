@@ -2,6 +2,7 @@
 * jobs tracked by each worker
 * */
 const constants = require('./constants');
+const { messageMap } = require('./localEnv');
 const tracker = new Map();
 
 exports.getTracker = function(){
@@ -21,8 +22,9 @@ exports.startTracking = function (key) {
     });
 };
 
-exports.stopTracking = function ({msg:key,status,result,error}) {
-    if(key in tracker){
+exports.stopTracking = function (message) {
+    let {msg:key,status,result,error} = message;
+    if(tracker.has(key)){
         if(status === constants.STATUS.COMPLETE){
             tracker.get(key).resolve(result);
         }

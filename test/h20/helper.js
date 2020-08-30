@@ -1,8 +1,11 @@
+const cluster = require('cluster');
+
 var ATOM_INDEX = {
     OXYGEN1 : 0,
     OXYGEN2 : 1,
     HYDROGEN: 2
 };
+var h2oCount = 0;
 var Promises = [];
 var Resolvers = [];
 var WaterPromise, WaterResolver;
@@ -22,8 +25,9 @@ function waitForWater(){
     return new Promise((resolve,_)=>{
         Promise.all(Promises)
         .then(()=>{
+            h2oCount++;
             console.log("----We have water!----");
-            WaterResolver("D!");
+            WaterResolver(h2oCount);
             // initResolvers();
             resolve();
         });
@@ -60,5 +64,4 @@ const MESSAGE_MAP = {
     [MESSAGE_KEYS.HC]  : hydrogenRecieved
 };
 
-initResolvers();
-module.exports = {MESSAGE_KEYS, MESSAGE_MAP, waitForWater};
+module.exports = {MESSAGE_KEYS, MESSAGE_MAP, waitForWater, initResolvers};
