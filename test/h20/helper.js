@@ -1,67 +1,99 @@
 const cluster = require('cluster');
+const mpu = require("../../index");
 
-var ATOM_INDEX = {
-    OXYGEN1 : 0,
-    OXYGEN2 : 1,
-    HYDROGEN: 2
-};
-var h2oCount = 0;
-var Promises = [];
-var Resolvers = [];
-var WaterPromise, WaterResolver;
+const REQUESTS = {};
+const MOLECULE = {PROMISE:null,RESOLVE:null,COUNT:0};
+const MESSAGE_KEYS = {}, MESSAGE_MAP = {};
+const ATOM_CALLS = {}, REQUIRED_ATOMS = {};
 
-function initResolvers(){
-    for(let i=0;i<3;i++){
-        Promises[i] = new Promise((resolve,_)=>{
-            Resolvers[i] = resolve;
-        });
-    }
-    WaterPromise = new Promise((resolve,_)=>{
-        WaterResolver = resolve;
-    });
-}
-
-function waitForWater(){
+function waitASec(){
     return new Promise((resolve,_)=>{
-        Promise.all(Promises)
-        .then(()=>{
-            h2oCount++;
-            console.log("----We have water!----");
-            WaterResolver(h2oCount);
-            // initResolvers();
+        setTimeout(()=>{
             resolve();
+        },1000)
+    });
+}
+
+function genTabString(count){
+    let tabStrig = "";
+    for(let  i=0;i<6*count;i++) tabStrig+="\t";
+    return tabStrig;
+}
+
+function log(msg){
+    console.log(`${MOLECULE.TAB_STRING}[Child ${cluster.worker.id}]: ${msg}`);
+}
+
+function resetResolvers(){
+    for(let key in REQUESTS){
+        REQUESTS[key].PROMISE = new Promise((resolve,_)=>REQUESTS[key].RESOLVE=resolve);
+    }
+    MOLECULE.PROMISE = new Promise((resolve,_)=>MOLECULE.RESOLVE=resolve);
+}
+
+function waitForMolecule(){
+    return new Promise((resolve,_)=>{
+        Promise.all(Object.values(REQUESTS).map(({PROMISE})=>PROMISE))
+        .then(()=>{
+            MOLECULE.COUNT++;
+            log(`${MOLECULE.FORMULA} created #${MOLECULE.COUNT}`);
+            MOLECULE.RESOLVE(MOLECULE.COUNT);
+            resolve();
+            resetResolvers();
         });
     });
 }
 
-function oxygenFrom1Recieved (){
-    console.log("Got O1!");
-    Resolvers[ATOM_INDEX.OXYGEN1]();
-    return WaterPromise;
+async function perpetualMoleculeCreation() {
+    while(true) {
+        await waitForMolecule();
+        await waitASec();
+    }
+} 
+
+function perpetualAtomCreation(atom,msg_key,tabString){
+    return async function(){
+        let atomCount = 0;
+        while(true){
+            atomCount++;
+            console.log(`${tabString}[Child ${cluster.worker.id}]: created ${atom}-atom #${atomCount}`);
+            let moleculeCount = await mpu.sendToSibling({siblingId:4,message:msg_key,value:atomCount});
+            console.log(`${tabString}[Child ${cluster.worker.id}]: ${atom}-atom #${atomCount} constitues molecule #${moleculeCount}`);
+        }
+    };
 }
 
-function oxygenFrom2Recieved (){
-    console.log("Got O2!");
-    Resolvers[ATOM_INDEX.OXYGEN2]();
-    return WaterPromise;
-}
-
-function hydrogenRecieved (){
-    console.log("Got H!");
-    Resolvers[ATOM_INDEX.HYDROGEN]();
-    return WaterPromise;
-}
-
-const MESSAGE_KEYS = {
-    O1C : "oxygen1Created",
-    O2C : "oxgen2Createad",
-    HC  : "hydrogenCreated"
+function setUp(){
+    let tab = 0;
+    for(let ATOM in REQUIRED_ATOMS){
+        let atomConfig = REQUIRED_ATOMS[ATOM];
+        for(let i=0;i<atomConfig.QTY;i++){
+            const key = ATOM+i;
+            MESSAGE_KEYS[key] = key;
+            MESSAGE_MAP [key] = function (atomCount) {
+                log(`Recieved ${atomConfig.SYMBOL}-atom #${atomCount}`);
+                REQUESTS[key].RESOLVE();
+                return MOLECULE.PROMISE;
+            };
+            let PROMISE, RESOLVE;
+            PROMISE = new Promise((resolve,_)=>RESOLVE=resolve);
+            REQUESTS[key] = {PROMISE,RESOLVE};
+            ATOM_CALLS[key] = perpetualAtomCreation(atomConfig.SYMBOL,key,genTabString(tab++));
+        }
+    }
+    MOLECULE.PROMISE = new Promise((resolve,_)=>MOLECULE.RESOLVE=resolve);
+    MOLECULE.TAB_STRING = genTabString(tab);
 };
 
-const MESSAGE_MAP = {
-    [MESSAGE_KEYS.O1C] : oxygenFrom1Recieved,
-    [MESSAGE_KEYS.O2C] : oxygenFrom2Recieved,
-    [MESSAGE_KEYS.HC]  : hydrogenRecieved
+const DEFAULT_ATOM = {
+    HYDROGEN : {QTY : 1, SYMBOL: "H"},
+    OXYGEN   : {QTY : 2, SYMBOL: "O"},
 };
+const DEFAULT_FORMULA = "H20";
 
-module.exports = {MESSAGE_KEYS, MESSAGE_MAP, waitForWater, initResolvers};
+module.exports = function(ATOMS_INFO = DEFAULT_ATOM,FORMULA = DEFAULT_FORMULA){
+    Object.assign(REQUIRED_ATOMS,ATOMS_INFO);
+    MOLECULE.FORMULA=FORMULA;
+    setUp();
+    return {MESSAGE_MAP, ATOM_CALLS, perpetualMoleculeCreation};
+};
