@@ -23,6 +23,12 @@ exports.isGoingBackward = function({dir}){
 exports.isMessageForSibling = function({dest:{type}}){
     return type === MESSAGE_TYPE.CHILD;
 }
+exports.isMessageForAllSiblings = function({dest:{type,id}}){
+    return type === MESSAGE_TYPE.CHILD && id === -1;
+}
+exports.isMessageForSiblings = function({dest:{type,id}}){
+    return type === MESSAGE_TYPE.CHILD && ids && ids.length > 0;
+}
 exports.isMessageGoingBackToSibling = function({src:{type}}){
     return type === MESSAGE_TYPE.CHILD;
 };

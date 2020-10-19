@@ -60,3 +60,4 @@ Added sendW2M (Worker-to-Master) function
 (future update will add a flag to make sure that only a single call is executed,
 if called from all the workers
 )
+//what if worker dies and we send message

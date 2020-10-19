@@ -84,6 +84,33 @@ exports.w2m = function(message){
 exports.m2w = function(message,workerId){
     return mphelper(composeMasterParams(message,msgHelper.composeM2WMsg,workerId));
 };
+
+exports.sendToMaster = function({siblingIds, message, value}){
+    let pr = tracker.startTracking(message);
+    let msg = {
+        msg: message,
+        dir: constants.DIRECTION.FORWARD,
+        val: value,
+        src: {type: constants.MESSAGE_TYPE.CHILD, id: cluster.worker.id},
+        dest:{type: constants.MESSAGE_TYPE.PARENT},
+    };
+    process.send(msg);
+    return pr;
+};
+
+exports.sendToSiblings = function({siblingIds, message, value}){
+    let pr = tracker.startTracking(message);
+    let msg = {
+        msg: message,
+        dir: constants.DIRECTION.FORWARD,
+        val: value,
+        src: {type: constants.MESSAGE_TYPE.CHILD, id: cluster.worker.id},
+        dest:{type: constants.MESSAGE_TYPE.CHILD, ids: siblingIds},
+    };
+    process.send(msg);
+    return pr;
+};
+
 exports.sendToSibling = function({siblingId, message, value}){
     let pr = tracker.startTracking(message);
     let msg = {

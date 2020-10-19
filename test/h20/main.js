@@ -12,12 +12,11 @@ function startCluster(){
     const ATOM_KEYS = Object.keys(ATOM_CALLS);
     const children = ATOM_KEYS.length + 1;
     if(cluster.isMaster){
-        console.log("M",ATOM_KEYS)
         for(let i=0; i<children; i++) cluster.fork();
-        mpu.init({MESSAGE_MAP, FAMILY_SIZE:children});
+        mpu.init(MESSAGE_MAP,{FAMILY_SIZE:children});
     }
     else if(cluster.isWorker){
-        mpu.init({MESSAGE_MAP, FAMILY_SIZE:children});
+        mpu.init(MESSAGE_MAP,{FAMILY_SIZE:children});
         if(cluster.worker.id === children){
             perpetualMoleculeCreation();
         }

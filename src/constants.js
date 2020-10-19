@@ -1,7 +1,7 @@
-
-
 const MSG_MAP = {};
+
 exports.getMap = function () { return MSG_MAP};
+
 exports.addToMap = function (key,funCall){
   MSG_MAP[key] = funCall;
 };
