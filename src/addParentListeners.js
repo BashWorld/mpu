@@ -9,7 +9,7 @@ function forwarding(message,worker){
     }
     else if(msgHelper.isMessageForAllSiblings(message)){
         for(const worker in cluster.workers){
-            cluster.workers[siblingId].send(message);
+            worker.send(message);
         }
     }
     else if(msgHelper.isMessageForSibling(message)){

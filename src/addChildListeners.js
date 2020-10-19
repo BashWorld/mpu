@@ -2,6 +2,7 @@ let msgHelper = require('./messageHelper');
 const JOB_TRACKER = require('./jobTracker');
 const executeMessage = require('./executeMessage');
 const cluster = require('cluster');
+const { messageMap } = require('./localEnv');
 
 function addChildListeners(){
     process.on('message',function (message) {

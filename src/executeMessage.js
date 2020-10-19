@@ -10,12 +10,23 @@ function executeMessage (message,recipient=process){
         Object.assign(message,obj);
         return message;
     }
-    return LOCAL_ENV.execute(msg,val)
-        .then(function(result){
-            recipient.send(updateMessage(messageConstants.STATUS.COMPLETE,{result}));
-        })
-        .catch(function (err) {
-            recipient.send(updateMessage(messageConstants.STATUS.FAILED,{error:err}));
-        });
+    try {
+        const result = LOCAL_ENV.execute(msg,val);
+        if(result.then){
+            result.then(function(result){
+                recipient.send(updateMessage(messageConstants.STATUS.COMPLETE,{result}));
+            })
+            .catch(function (error) {
+                recipient.send(updateMessage(messageConstants.STATUS.FAILED,{error}));
+            });
+        }
+        else recipient.send(updateMessage(messageConstants.STATUS.COMPLETE,{result}));
+    }
+    catch({message,stack,code}){
+        recipient.send(updateMessage(messageConstants.STATUS.FAILED,{error:{message,stack,code}}));
+    }
+    
+    return Promise.resolve()
+        
 }
 module.exports = executeMessage;

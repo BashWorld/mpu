@@ -35,6 +35,9 @@ exports.isMessageGoingBackToSibling = function({src:{type}}){
 exports.getSiblingId = function({dest:{id}}){
     return id;
 }
+exports.getSiblingIds = function({dest:{ids}}){
+    return ids;
+}
 exports.getSourceSiblingId = function({src:{id}}){
     return id;
 }

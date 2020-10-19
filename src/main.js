@@ -85,7 +85,7 @@ exports.m2w = function(message,workerId){
     return mphelper(composeMasterParams(message,msgHelper.composeM2WMsg,workerId));
 };
 
-exports.sendToMaster = function({siblingIds, message, value}){
+exports.sendToMaster = function({message, value}){
     let pr = tracker.startTracking(message);
     let msg = {
         msg: message,
