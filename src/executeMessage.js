@@ -1,4 +1,5 @@
 let messageConstants = require('./constants');
+const cluster = require('cluster');
 const LOCAL_ENV = require('./localEnv');
 
 function executeMessage (message,recipient=process){
@@ -7,6 +8,7 @@ function executeMessage (message,recipient=process){
     function updateMessage(status,obj){
         message.dir = messageConstants.DIRECTION.BACKWARD;
         message.status = status;
+        if(cluster.isWorker) message.from = cluster.worker.id;
         Object.assign(message,obj);
         return message;
     }

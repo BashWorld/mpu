@@ -6,13 +6,13 @@ const DIRECTION = require('./constants').DIRECTION;
 /*
 * Assuming every message that is passed in the cluster has the following format
 * <TYPE>|<MESSAGE>[_<WORKER_ID>][|<STATUS>]
-* {src:{type:"parent|child", id:"worker id"},dest:{type:"parent|sibling",id:[]},msg:"",status:""}
+* {src:{type:"parent|child", id:"worker id"},dest:{type:"parent|sibling",id:"worker id"[,ids:[]]},msg:"",status:"",value:"",dir:""}
 * */
 exports.isMessageForParent = function({dest:{type}}){
     return type === MESSAGE_TYPE.PARENT;
 };
-exports.isMessageForThisChild = function(childId,{dest:{id}}){
-    return id===childId;
+exports.isMessageForThisChild = function(childId,{dest:{id,ids}}){
+    return ids? ids.includes(childId):id===childId;
 };
 exports.isGoingForward = function({dir}){
     return dir === DIRECTION.FORWARD;
@@ -26,7 +26,7 @@ exports.isMessageForSibling = function({dest:{type}}){
 exports.isMessageForAllSiblings = function({dest:{type,id}}){
     return type === MESSAGE_TYPE.CHILD && id === -1;
 }
-exports.isMessageForSiblings = function({dest:{type,id}}){
+exports.isMessageForSiblings = function({dest:{type,ids}}){
     return type === MESSAGE_TYPE.CHILD && ids && ids.length > 0;
 }
 exports.isMessageGoingBackToSibling = function({src:{type}}){
@@ -41,6 +41,15 @@ exports.getSiblingIds = function({dest:{ids}}){
 exports.getSourceSiblingId = function({src:{id}}){
     return id;
 }
+exports.getMessage = function({msg}){
+    return msg;
+}
+exports.getMessageFrom = function({from}){
+    return from;
+}
+exports.getNumOfMessagesSent = function({numOfWorkers,dest:{ids}}){
+    return numOfWorkers? numOfWorkers : ids.length;
+}
 
 exports.addToMessage = function(msg, addStr){
     return msg+SEPARATOR+addStr;
@@ -53,9 +62,9 @@ exports.shatterMessage = function(msg,sep){
 exports.getTillMessage = function(msg){
     return this.shatterMessage(this.shatterMessage(msg).slice(0,2).join(SEPARATOR),WORKER_ID_SEPARATOR)[0];
 };
-exports.getMessage = function(msg){
-    return this.shatterMessage(this.shatterMessage(msg)[1],WORKER_ID_SEPARATOR)[0];
-};
+// exports.getMessage = function(msg){
+//     return this.shatterMessage(this.shatterMessage(msg)[1],WORKER_ID_SEPARATOR)[0];
+// };
 exports.addWorkerId = function(msg,id){
   return msg+WORKER_ID_SEPARATOR+id;
 };

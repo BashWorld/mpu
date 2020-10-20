@@ -2,7 +2,7 @@
 * jobs tracked by each worker
 * */
 const constants = require('./constants');
-const { messageMap } = require('./localEnv');
+const msgHelper = require('./messageHelper');
 const tracker = new Map();
 
 exports.getTracker = function(){
@@ -16,20 +16,32 @@ exports.getTrackerStatus = function(key){
   return constants.STATUS.EX_CRISIS;
 };
 
-exports.startTracking = function (key) {
+exports.startTracking = function (message) {
+    const key = msgHelper.getMessage(message);
+    let set = msgHelper.isMessageForSiblings(message) || msgHelper.isMessageForAllSiblings(message) ? 
+                {flag:true,  value:new Set(), replies:[]} : 
+                {flag:false, value:null} ;
     return new Promise((resolve,reject)=>{
-        tracker.set(key,{resolve,reject});
+        tracker.set(key,{resolve,reject,set});
     });
 };
 
 exports.stopTracking = function (message) {
     let {msg:key,status,result,error} = message;
     if(tracker.has(key)){
+        const trackerObj = tracker.get(key);
+        if(trackerObj.set.flag){
+            const fromWorker = msgHelper.getMessageFrom(message);
+            trackerObj.set.value.add(fromWorker);
+            trackerObj.set.replies.push(error?error:result);
+            if(msgHelper.getNumOfMessagesSent(message) !== trackerObj.set.value.size) return;
+            result=error=trackerObj.set.replies;
+        }
         if(status === constants.STATUS.COMPLETE){
-            tracker.get(key).resolve(result);
+            trackerObj.resolve(result);
         }
         else{
-            tracker.get(key).reject(error);
+            trackerObj.reject(error);
         }
     }
     tracker.delete(key)

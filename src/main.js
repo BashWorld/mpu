@@ -86,7 +86,6 @@ exports.m2w = function(message,workerId){
 };
 
 exports.sendToMaster = function({message, value}){
-    let pr = tracker.startTracking(message);
     let msg = {
         msg: message,
         dir: constants.DIRECTION.FORWARD,
@@ -94,12 +93,12 @@ exports.sendToMaster = function({message, value}){
         src: {type: constants.MESSAGE_TYPE.CHILD, id: cluster.worker.id},
         dest:{type: constants.MESSAGE_TYPE.PARENT},
     };
+    let pr = tracker.startTracking(msg);
     process.send(msg);
     return pr;
 };
 
 exports.sendToSiblings = function({siblingIds, message, value}){
-    let pr = tracker.startTracking(message);
     let msg = {
         msg: message,
         dir: constants.DIRECTION.FORWARD,
@@ -107,12 +106,12 @@ exports.sendToSiblings = function({siblingIds, message, value}){
         src: {type: constants.MESSAGE_TYPE.CHILD, id: cluster.worker.id},
         dest:{type: constants.MESSAGE_TYPE.CHILD, ids: siblingIds},
     };
+    let pr = tracker.startTracking(msg);
     process.send(msg);
     return pr;
 };
 
 exports.sendToSibling = function({siblingId, message, value}){
-    let pr = tracker.startTracking(message);
     let msg = {
         msg: message,
         dir: constants.DIRECTION.FORWARD,
@@ -120,6 +119,7 @@ exports.sendToSibling = function({siblingId, message, value}){
         src: {type: constants.MESSAGE_TYPE.CHILD, id: cluster.worker.id},
         dest:{type: constants.MESSAGE_TYPE.CHILD, id: siblingId},
     };
+    let pr = tracker.startTracking(msg);
     process.send(msg);
     return pr;
 };

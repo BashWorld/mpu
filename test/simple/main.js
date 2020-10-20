@@ -15,14 +15,14 @@ else if(cluster.isWorker){
     mpu.init(MESSAGE_MAP,{FAMILY_SIZE:CHILDREN});
     if(cluster.worker.id === 1){
         mpu.sendToSibling({siblingId:2,message:"ping"})
-        .then(reply => console.log(`Child ${cluster.worker.id} got reply: ${JSON.stringify(reply)}`));
+        .then(reply => console.log(`Child ${cluster.worker.id} send ping to child , got reply: ${JSON.stringify(reply)}`));
     }
     else if(cluster.worker.id === 2){
         mpu.sendToMaster({message:"ping"})
-        .catch(error => console.log(`Child ${cluster.worker.id} got error: ${error.message}`));
+        .catch(error => console.log(`Child ${cluster.worker.id} send ping to master, got error: ${error.message}`));
     }
-    else {
-        //WIP
+    else 
+    {
         mpu.sendToSiblings({siblingIds:[1,2],message:"ping"})
         .then(reply => console.log(`Child ${cluster.worker.id} got reply: ${JSON.stringify(reply)}`));
     }
