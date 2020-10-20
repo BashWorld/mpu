@@ -1,4 +1,9 @@
-exports.init = require('./src/init').init;
-exports.sendToSibling = require('./src/main').sendToSibling;
-exports.sendToMaster = require('./src/main').sendToMaster;
-exports.sendToSiblings = require('./src/main').sendToSiblings;
+const init = require('./src/init');
+const main = require('./src/main');
+
+module.exports = {
+    init : init.init,
+    sendToMaster : main.sendToMaster,
+    sendToSibling : main.sendToSibling,
+    sendToSiblings : main.sendToSiblings
+};
