@@ -1,46 +1,71 @@
-const messageConstants = require('./constants');
-const msgHelper = require('./messageHelper');
-const executeMessage = require('./executeMessage'); 
-const LOCAL_ENV = require('./localEnv');
 const cluster = require('cluster');
+const MSG_HELPER = require('./msgHelper');
+const MSG_CONSTANTS = require('./constants');
+const executeMessage = require('./executeMessage'); 
 
-function forwarding(message,worker){
-    if(msgHelper.isMessageForParent(message)){
-        executeMessage(message,worker);
-    }
-    else if(msgHelper.isMessageForAllSiblings(message)){
-        for(const worker in cluster.workers){
-            worker.send(message);
-        }
-    }
-    else if(msgHelper.isMessageForSiblings(message)){
-        const siblingIds = msgHelper.getSiblingIds(message);
-        siblingIds.forEach(siblingId => {
-            cluster.workers[siblingId].send(message);
-        });
-    }
-    else if(msgHelper.isMessageForSibling(message)){
-        const siblingId = msgHelper.getSiblingId(message);
-        if(LOCAL_ENV.isValidSibling(siblingId)){
-            cluster.workers[siblingId].send(message);
-        }
-        else{
-            message.status = messageConstants.STATUS.EX_CRISIS;
-            message.error  = {message:"Invalid Sibling ID!"};
-            worker.send(message);
-        }
+function isValidSibling(siblingId){
+    return cluster.workers[siblingId] !== undefined;
+}
+
+function forwardMessageToSibling(message, worker){
+    const siblingId = MSG_HELPER.getSiblingId(message);
+    if(isValidSibling(siblingId)){
+        cluster.workers[siblingId].send(message);
     }
     else{
-        message.status = messageConstants.STATUS.EX_CRISIS;
-        message.error  = {message:"Invalid Message Type!"};
-        worker.send(message);
+        worker.send(MSG_CONSTANTS.ERROR_MESSAGE.SIBLING_MIA);
     }
 }
 
-function reversion(message){
-    if(msgHelper.isMessageGoingBackToSibling(message)){
-        const siblingId = msgHelper.getSourceSiblingId(message);
-        if(msgHelper.isMessageForAllSiblings(message)){
+function forwardMessageToGivenSiblings(message, worker){
+    const siblingIds = MSG_HELPER.getSiblingIds(message);
+    const validSiblingIds = siblingIds.filter(isValidSibling);
+    if(MSG_HELPER.ignoreChecks(message)){
+        MSG_HELPER.setSiblingIds(message, validSiblingIds);
+        validSiblingIds.forEach(siblingId => {
+            cluster.workers[siblingId].send(message);
+        });
+    }
+    else{
+        if(siblingIds.length === validSiblingIds.length){
+            siblingIds.forEach(siblingId => {
+                cluster.workers[siblingId].send(message);
+            });    
+        }
+        else{
+            worker.send(MSG_CONSTANTS.ERROR_MESSAGE.SIBLINGS_MIA);
+        }
+    }
+}
+
+function forwardMessageToAllSiblings(message){
+    for(const workerId in cluster.workers){
+        cluster.workers[workerId].send(message);
+    }
+}
+
+function forwardMessage(message,worker){
+    if(MSG_HELPER.isMessageForParent(message)){
+        executeMessage(message,worker);
+    }
+    else if(MSG_HELPER.isMessageForAllSiblings(message)){
+        forwardMessageToAllSiblings(message);
+    }
+    else if(MSG_HELPER.isMessageForSiblings(message)){
+        forwardMessageToGivenSiblings(message,worker);
+    }
+    else if(MSG_HELPER.isMessageForSibling(message)){
+        forwardMessageToSibling(message,worker)
+    }
+    else{
+        worker.send(MSG_CONSTANTS.ERROR_MESSAGE.INVALID_MSG);
+    }
+}
+
+function sendBackMessage(message){
+    if(MSG_HELPER.isMessageGoingBackToSibling(message)){
+        const siblingId = MSG_HELPER.getSourceSiblingId(message);
+        if(MSG_HELPER.isMessageForAllSiblings(message)){
             message.dest.numOfWorkers = Object.keys(cluster.workers).length;
         }
         cluster.workers[siblingId].send(message);
@@ -51,11 +76,11 @@ function addParentListeners(){
     for(let workerId in cluster.workers){
         let worker = cluster.workers[workerId];
         worker.on('message', function (message) {
-            if(msgHelper.isGoingForward(message)){
-                forwarding(message,worker);
+            if(MSG_HELPER.isGoingForward(message)){
+                forwardMessage(message,worker);
             }
             else{
-                reversion(message);
+                sendBackMessage(message);
             }
         });
     }

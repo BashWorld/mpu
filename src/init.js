@@ -23,6 +23,6 @@ exports.init = function (MESSAGE_MAP, {FAMILY_SIZE, CREATE_FAMILY=false}={}) {
         addParentListeners();   
     }
     else if(cluster.isWorker){
-       addChildListeners();
+       addChildListeners(cluster.worker.id);
     }
 };

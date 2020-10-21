@@ -2,7 +2,7 @@
 * jobs tracked by each worker
 * */
 const constants = require('./constants');
-const msgHelper = require('./messageHelper');
+const msgHelper = require('./msgHelper');
 const tracker = new Map();
 
 exports.getTracker = function(){

@@ -4,7 +4,7 @@ const LOCAL_ENV = require('./localEnv');
 
 function executeMessage (message,recipient=process){
     const {msg,val} = message;
-    //check if msg not there
+    //TODO check if msg not there
     function updateMessage(status,obj){
         message.dir = messageConstants.DIRECTION.BACKWARD;
         message.status = status;
@@ -18,8 +18,8 @@ function executeMessage (message,recipient=process){
             result.then(function(result){
                 recipient.send(updateMessage(messageConstants.STATUS.COMPLETE,{result}));
             })
-            .catch(function (error) {
-                recipient.send(updateMessage(messageConstants.STATUS.FAILED,{error}));
+            .catch(function ({message,stack,code}) {
+                recipient.send(updateMessage(messageConstants.STATUS.FAILED,{message,stack,code}));
             });
         }
         else recipient.send(updateMessage(messageConstants.STATUS.COMPLETE,{result}));

@@ -26,12 +26,13 @@ exports.sendToMaster = function({message, value}){
     return pr;
 };
 
-exports.sendToSiblings = function({siblingIds, message, value}){
+exports.sendToSiblings = function({siblingIds, message, value, ignoreCheck=false}){
     let msg = {
         msg: message,
         dir: constants.DIRECTION.FORWARD,
         val: value,
         src: getSource(),
+        byPassCheck: ignoreCheck,
         dest:{type: constants.MESSAGE_TYPE.CHILD, ids: siblingIds},
     };
     let pr = tracker.startTracking(msg);

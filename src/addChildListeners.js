@@ -1,12 +1,11 @@
-let msgHelper = require('./messageHelper');
+const MSG_HELPER  = require('./msgHelper');
 const JOB_TRACKER = require('./jobTracker');
 const executeMessage = require('./executeMessage');
-const cluster = require('cluster');
 
-function addChildListeners(){
+function addChildListeners(childId){
     process.on('message',function (message) {
-        if(msgHelper.isGoingForward(message)){
-            if(msgHelper.isMessageForThisChild(cluster.worker.id,message)){
+        if(MSG_HELPER.isGoingForward(message)){
+            if(MSG_HELPER.isMessageForThisChild(childId,message)){
                 executeMessage(message);
             }
         }
