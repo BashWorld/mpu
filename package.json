@@ -3,7 +3,10 @@
   "version": "2.0.0",
   "description": "Utility to pass messages to other processes within a cluster",
   "license": "MIT",
-  "repository": "BashWorld/mpu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/raw-ash/mpu.git"
+  },
   "main": "index.js",
   "keywords": [
     "node",
@@ -11,5 +14,15 @@
     "message",
     "passing"
   ],
-  "dependencies": {}
+  "bugs": {
+    "url": "https://github.com/raw-ash/mpu/issues"
+  },
+  "homepage": "https://github.com/raw-ash/mpu#readme",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ashish Rawat (https://github.com/raw-ash)"
 }
