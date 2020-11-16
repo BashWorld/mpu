@@ -14,7 +14,6 @@ const addChildListeners = require('./addChildListeners');
  */
 exports.init = function (MESSAGE_MAP, {FAMILY_SIZE, CREATE_FAMILY=false}={}) {
     LOCAL_ENV.setMessageMap(MESSAGE_MAP);
-    LOCAL_ENV.setSiblings(FAMILY_SIZE);
     /*add listeners to master process*/
     if(cluster.isMaster){
         if(CREATE_FAMILY){
@@ -25,4 +24,5 @@ exports.init = function (MESSAGE_MAP, {FAMILY_SIZE, CREATE_FAMILY=false}={}) {
     else if(cluster.isWorker){
        addChildListeners(cluster.worker.id);
     }
+    //TODO return success of failure
 };

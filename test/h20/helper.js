@@ -16,7 +16,7 @@ function waitASec(){
 
 function genTabString(count){
     let tabStrig = "";
-    for(let  i=0;i<6*count;i++) tabStrig+="\t";
+    for(let i=0;i<6*count;i++) tabStrig+="\t";
     return tabStrig;
 }
 

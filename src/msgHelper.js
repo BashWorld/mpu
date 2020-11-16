@@ -11,7 +11,7 @@ exports.isMessageForParent = function({dest:{type}}){
     return type === MESSAGE_TYPE.PARENT;
 };
 exports.isMessageForThisChild = function(childId,{dest:{id,ids}}){
-    return ids? ids.includes(childId):id===childId;
+    return ids? (ids.length? ids.includes(childId): ids===-1):id===childId;
 };
 exports.isGoingForward = function({dir}){
     return dir === DIRECTION.FORWARD;
@@ -22,8 +22,8 @@ exports.isGoingBackward = function({dir}){
 exports.isMessageForSibling = function({dest:{type}}){
     return type === MESSAGE_TYPE.CHILD;
 }
-exports.isMessageForAllSiblings = function({dest:{type,id}}){
-    return type === MESSAGE_TYPE.CHILD && id === -1;
+exports.isMessageForAllSiblings = function({dest:{type,ids}}){
+    return type === MESSAGE_TYPE.CHILD && ids === -1;
 }
 exports.isMessageForSiblings = function({dest:{type,ids}}){
     return type === MESSAGE_TYPE.CHILD && ids && ids.length > 0;
@@ -49,7 +49,7 @@ exports.getMessage = function({msg}){
 exports.getMessageFrom = function({from}){
     return from;
 }
-exports.getNumOfMessagesSent = function({numOfWorkers,dest:{ids}}){
+exports.getNumOfMessagesSent = function({dest:{numOfWorkers,ids}}){
     return numOfWorkers? numOfWorkers : ids.length;
 }
 exports.ignoreChecks = function({byPassCheck=false}){
