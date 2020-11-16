@@ -1,106 +1,28 @@
-let cluster = require('cluster');
-let messageConstants = require('./constants');
-let msgHelper = require('./messageHelper');
-
-let callFunc = function (msg){
-    const MSG_MAP = require('./constants').getMap();
-    let msgConst = msgHelper.getMessage(msg);
-    let promise;
-    if(MSG_MAP[msgConst]) promise = MSG_MAP[msgConst]();
-    else promise = Promise.reject(messageConstants.STATUS.EX_CRISIS);
-    return promise
-        .catch(function (err) {
-            if(messageConstants.showFailureMessage())
-                console.error("Message Failure:",msgHelper.getMessage(msg)+" : ERROR :=",err);
-            return messageConstants.STATUS.FAILED;
-        });
-};
+const cluster = require('cluster');
+const LOCAL_ENV = require('./localEnv');
+const addParentListeners = require('./addParentListeners');
+const addChildListeners = require('./addChildListeners');
 
 /**
- *
- * @param {object} params.MSG_MAP
- * @param {number} params.TIMEOUT
- * @param {number} params.WORKERS
+ * Initialize for cluster communication, or
+ * Introducing a common language for family of processes to use
+ * @param {object} MESSAGE_MAP Contains key and function associated with it
+ * @param {object} OPTIONS
+ * @param {number} OPTIONS.FAMILY_SIZE (Excluding parent) Total number of child processes
+ * @param {boolean} [OPTIONS.CREATE_FAMILY=false] Create cluster if true
+ * @returns {undefined}
  */
-exports.init = function (params) {
-    let input = params || {};
-    let map = input.MSG_MAP || {};
-    let timeout = input.TIMEOUT || messageConstants.getTimeout();
-    let number_of_workers = input.WORKERS || messageConstants.getTotalWorkers();
-    for(let key in map){
-        messageConstants.addToMap(key,map[key]);
-    }
-    messageConstants.setTotalWorkers(number_of_workers);
-    messageConstants.setTimeout(timeout);
+exports.init = function (MESSAGE_MAP, {FAMILY_SIZE, CREATE_FAMILY=false}={}) {
+    LOCAL_ENV.setMessageMap(MESSAGE_MAP);
     /*add listeners to master process*/
     if(cluster.isMaster){
-        const COUNTERS = {};
-        for(let i in cluster.workers){
-            let worker = cluster.workers[i];
-            worker.on('message', function (message) {
-                if(msgHelper.isW2M(message)){
-                    callFunc(message)
-                        .then(function(status){
-                            worker.send(msgHelper.addToMessage(message,messageConstants.STATUS.COMPLETE));
-                        });
-                }
-                else if(msgHelper.isW2WS(message)){
-                    let messageKey = msgHelper.getMessage(message);
-                    if(!msgHelper.getWorkerId(message)){
-                        //send to all workers
-                        let updatedMessage = msgHelper.addWorkerId(message,worker.id);
-                        if(COUNTERS[messageKey]){
-                            //already one is being executed, don't execute this call
-                            worker.send(msgHelper.addToMessage(message,messageConstants.STATUS.IN_PROCESS));
-                        }
-                        else{
-                            COUNTERS[messageKey] = {ID : worker.id, COUNT : 0};
-                            for(let j in cluster.workers){
-                                cluster.workers[j].send(updatedMessage);
-                            }
-                        }
-                    }
-                    else{
-                        COUNTERS[messageKey].COUNT+=1;
-                        if(COUNTERS[messageKey].COUNT === messageConstants.getTotalWorkers()){
-                            delete COUNTERS[messageKey];
-                            cluster.workers[msgHelper.getWorkerId(message)].send(message);
-                        }
-                    }
-                }
-                else if(msgHelper.isM2W(message)){
-                    require('./jobTracker').stopTracking(msgHelper.getTillMessage(message));
-                }
-            });
+        if(CREATE_FAMILY){
+            for(let i=0;i<FAMILY_SIZE;i++)cluster.fork();
         }
+        addParentListeners();   
     }
     else if(cluster.isWorker){
-        process.on('message',function (message) {
-           if(msgHelper.isW2WS(message)){
-               let status = msgHelper.getStatus(message);
-               if(status){
-                   // it's done
-                    require('./jobTracker').stopTracking(msgHelper.getTillMessage(message));
-               }
-               else{
-                   callFunc(message)
-                       .then(function(status){
-                           process.send(msgHelper.addToMessage(message,messageConstants.STATUS.COMPLETE));
-                       });
-               }
-           }
-           else if(msgHelper.isW2M(message)){
-               require('./jobTracker').stopTracking(msgHelper.getTillMessage(message));
-           }
-           else if(msgHelper.isM2W(message)){
-               callFunc(message)
-                   .then(function(status){
-                       process.send(msgHelper.addToMessage(message,messageConstants.STATUS.COMPLETE));
-                   })
-                   .catch(function(err){
-                       console.log(err);
-                   });
-           }
-        });
+       addChildListeners(cluster.worker.id);
     }
+    //TODO return success of failure
 };

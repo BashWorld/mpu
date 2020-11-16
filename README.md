@@ -1,4 +1,4 @@
-[![](https://img.shields.io/bower/l/mi.svg?style=for-the-badge)](https://github.com/BashWorld/mpu)
+[![](https://img.shields.io/bower/l/mi.svg?style=for-the-badge)](https://github.com/raw-ash/mpu)
 
 Helps in passing messages within a cluster between
 1) Master to worker(s)
@@ -13,34 +13,39 @@ Make sure that the `mp-unit.init` function for the master is called after the cl
 
 ```js
 let os = require('os');
-let cluster = require('cluster');
 let mpu = require('mp-unit');
-let totalWorkers = os.cpus().length;
+let cluster = require('cluster');
+let totalWorkers = 3;
+
+function logWithTabs(workerId,message){
+    const tabString = '\t\t\t'.repeat(workerId-1);
+    console.log(tabString+message);
+}
 
 let FUN_KEY = "CHECK";
-let MSG_MAP = {};
-let fun = function (){
-    console.log("FROM WORKER "+cluster.worker.id+" := "+process.pid);
-    return Promise.resolve();
+let MSG_MAP = {
+    [FUN_KEY]: (workerId) => {
+        logWithTabs(workerId,`[${workerId}] In Worker ${cluster.worker.id}`);
+        return Promise.resolve();
+    }
 };
-MSG_MAP[FUN_KEY] = fun;
 
-let params = {
-    WORKERS : totalWorkers,
-    MSG_MAP : MSG_MAP,
-    TIMEOUT : 10
-};
+function init(){
+    mpu.init(MSG_MAP,{FAMILY_SIZE:totalWorkers});
+}
 
 if(cluster.isMaster){
     for(let i = 0;i<totalWorkers;++i){
         cluster.fork();
     }
-    mpu.init(params);
+    init();
 }
 else if(cluster.isWorker){
-    mpu.init(params);
-    mpu.sendW2WS(FUN_KEY)
+    init();
+    logWithTabs(cluster.worker.id,`[${cluster.worker.id}] Start`);
+    mpu.sendToSiblings({message:FUN_KEY, siblingIds:-1, value:cluster.worker.id})
         .then(function (){
+            logWithTabs(cluster.worker.id,`[${cluster.worker.id}] End`);
             cluster.worker.disconnect();
         });
 }
@@ -53,10 +58,4 @@ around in the cluster.
 The above example shows how a single worker can ask all worker processes (including itself)
 to execute a function. Even though every worker process is trying to ask all worker processes
 to execute the `fun` function, `mp-unit` module makes sure that only a single call goes to all processes. 
-Thus, working as though only a single process called the `sendW2WS` (Worker-To-Workers) function.
-
-### Updates
-Added sendW2M (Worker-to-Master) function
-(future update will add a flag to make sure that only a single call is executed,
-if called from all the workers
-)
+Thus, working as though only a single process called the `sendToSiblings` (Worker-To-Workers) function.
